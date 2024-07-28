@@ -26,8 +26,8 @@ const AddAddress = () => {
         nav('/');
       })
       .catch((error) => {
-        console.error('Error adding address:', error);
-        toast.error('An error occurred while adding the address. Please try again.');
+        const errorMessage = error.response?.data?.error || 'An error occurred while adding the address. Please try again.';
+        toast.error(errorMessage);
       });
   };
 

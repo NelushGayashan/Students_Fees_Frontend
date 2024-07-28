@@ -1,20 +1,24 @@
-// AddressList.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { toast } from 'react-toastify';
 import Navigation from './Navigation';
 import { PencilSquare, Trash } from 'react-bootstrap-icons';
+import Modal from './Modal';
 
 const AddressList = () => {
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteAddressId, setDeleteAddressId] = useState(null);
 
+  // handle for fetching addresses on page load
   useEffect(() => {
     axios.get('http://localhost:5000/api/addresses').then((response) => {
       setAddresses(response.data);
     });
   }, []);
 
+  // handle for deleting address
   const handleDelete = (addressId) => {
     axios
       .delete(`http://localhost:5000/api/addresses/${addressId}`)
@@ -23,18 +27,22 @@ const AddressList = () => {
       })
       .then((response) => {
         setAddresses(response.data);
-        toast.success('Address deleted successfully!');
+        setIsDeleteModalOpen(false);
+        setDeleteAddressId(null);
       })
       .catch((error) => {
         console.error('Error deleting address:', error);
-        toast.error('An error occurred while deleting the address. Please try again.');
+        alert('An error occurred while deleting the address. Please try again.');
       });
   };
 
+  // handle for setting address to be updated
   const handleEdit = (address) => {
     setSelectedAddress(address);
+    setIsUpdateModalOpen(true);
   };
 
+  // handle for updating address
   const handleUpdate = (updatedAddress) => {
     axios
       .put(`http://localhost:5000/api/addresses/${updatedAddress._id}`, updatedAddress)
@@ -44,11 +52,11 @@ const AddressList = () => {
       .then((response) => {
         setAddresses(response.data);
         setSelectedAddress(null);
-        toast.success('Address updated successfully!');
+        setIsUpdateModalOpen(false);
       })
       .catch((error) => {
         console.error('Error updating address:', error);
-        toast.error('An error occurred while updating the address. Please try again.');
+        alert('An error occurred while updating the address. Please try again.');
       });
   };
 
@@ -56,80 +64,38 @@ const AddressList = () => {
     <div className='min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4'>
       <h2 className='text-4xl font-bold mb-6 text-center'>Address Book</h2>
       <Navigation />
-      {selectedAddress && (
-        <div className='bg-white p-6 rounded-lg shadow-md w-full max-w-md mb-6'>
-          <h2 className='text-2xl font-bold mb-4'>Edit Address</h2>
-          <form onSubmit={() => handleUpdate(selectedAddress)}>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">Name:</label>
-              <input
-                type="text"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                name="name"
-                value={selectedAddress.name}
-                onChange={(e) =>
-                  setSelectedAddress({
-                    ...selectedAddress,
-                    name: e.target.value,
-                  })
-                }
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">Email:</label>
-              <input
-                type="email"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                name="email"
-                value={selectedAddress.email}
-                onChange={(e) =>
-                  setSelectedAddress({
-                    ...selectedAddress,
-                    email: e.target.value,
-                  })
-                }
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">Phone:</label>
-              <input
-                type="text"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                name="phone"
-                value={selectedAddress.contact}
-                onChange={(e) =>
-                  setSelectedAddress({
-                    ...selectedAddress,
-                    contact: e.target.value,
-                  })
-                }
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">Address:</label>
-              <input
-                type="text"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                name="address"
-                value={selectedAddress.address}
-                onChange={(e) =>
-                  setSelectedAddress({
-                    ...selectedAddress,
-                    address: e.target.value,
-                  })
-                }
-                required
-              />
-            </div>
-            <div>
-              <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                Update Address
+      {isUpdateModalOpen && selectedAddress && (
+        <Modal
+          isOpen={isUpdateModalOpen}
+          onClose={() => setIsUpdateModalOpen(false)}
+          onSubmit={() => handleUpdate(selectedAddress)}
+          address={selectedAddress}
+          setAddress={setSelectedAddress}
+        />
+      )}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-bold mb-4">Confirm Delete</h2>
+            <p>Are you sure you want to delete this address?</p>
+            <div className="flex space-x-4 mt-4">
+              <button
+                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                onClick={() => handleDelete(deleteAddressId)}
+              >
+                Delete
+              </button>
+              <button
+                className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setDeleteAddressId(null);
+                }}
+              >
+                Cancel
               </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
       <ul className='w-full max-w-2xl'>
@@ -144,7 +110,10 @@ const AddressList = () => {
             <div className='flex space-x-2'>
               <button
                 className="text-red-600 hover:text-red-800"
-                onClick={() => handleDelete(address._id)}
+                onClick={() => {
+                  setIsDeleteModalOpen(true);
+                  setDeleteAddressId(address._id);
+                }}
               >
                 <Trash className='w-6 h-6' />
               </button>
